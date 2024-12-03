@@ -3,11 +3,12 @@ import { fetchApi } from '@libs/fetch';
 import { Plugin } from '@typings/plugin';
 import { Filters, FilterTypes } from '@libs/filterInputs';
 import { defaultCover } from '@libs/defaultCover';
+import { load } from 'protobufjs';
 
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.3';
+  version = '1.2.4';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -121,19 +122,31 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .map((i, el) => loadedCheerio(el).text().trim())
       .get()
       .join(', ');
+
     const tags = Array.from(loadedCheerio('dd.freeform.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
-    const summary = loadedCheerio('blockquote.userstuff').text();
+
+    let summary = '';
+    loadedCheerio('blockquote.userstuff')
+      .find('p')
+      .each((i, p) => {
+        loadedCheerio(p).html()?.replace(/<br>/g, '\n');
+        summary += loadedCheerio(p).text().trim() + '\n\n';
+      });
+
     const fandom = Array.from(loadedCheerio('dd.fandom.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
+
     const series = Array.from(loadedCheerio('dd.series li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
+
     const relation = Array.from(loadedCheerio('dd.relationship.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
+
     const character = Array.from(loadedCheerio('dd.character.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
@@ -148,9 +161,11 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       `Fandom:\n${fandom}\n\n` +
       (series.length > 0 ? `Series:\n${series}\n\n` : ``) +
       `Summary:\n${summary}`;
+
     const chapterItems: Plugin.ChapterItem[] = [];
     const longReleaseDate: string[] = [];
     let match: RegExpExecArray | null;
+
     chapterlistload('ol.index').each((i, ele) => {
       chapterlistload(ele)
         .find('li')
@@ -167,13 +182,17 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
           longReleaseDate.push(releaseTime);
         });
     });
+
     const releaseTimeText = loadedCheerio('.wrapper dd.published')
       .text()
       .trim();
+
     const releaseTime = releaseTimeText
       ? new Date(releaseTimeText).toISOString()
       : '';
+
     let dateCounter: number = 0;
+
     if (loadedCheerio('#chapter_index select').length > 0) {
       loadedCheerio('#chapter_index select').each((i, selectEl) => {
         loadedCheerio(selectEl)
@@ -194,6 +213,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
           });
       });
     }
+
     if (chapterItems.length === 0) {
       loadedCheerio('#chapters h3.title').each((i, titleEl) => {
         const fullTitleText = loadedCheerio(titleEl).text().trim();
@@ -220,6 +240,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
           });
         }
       });
+
       if (chapterItems.length === 0) {
         loadedCheerio('.work.navigation.actions li a').each((i, el) => {
           const href = loadedCheerio(el).attr('href');
@@ -249,6 +270,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
         });
       }
     }
+
     novel.chapters = chapterItems;
 
     return novel;
