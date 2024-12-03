@@ -7,7 +7,7 @@ import { defaultCover } from '@libs/defaultCover';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.1';
+  version = '1.2.2';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -121,17 +121,11 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .map((i, el) => loadedCheerio(el).text().trim())
       .get()
       .join(', ');
-    novel.genres = Array.from(loadedCheerio('dd.freeform.tags li a.tag'))
+    const tags = Array.from(loadedCheerio('dd.freeform.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
     const summary = loadedCheerio('blockquote.userstuff').text().trim();
     const fandom = Array.from(loadedCheerio('dd.fandom.tags li a.tag'))
-      .map(el => loadedCheerio(el).text().trim())
-      .join(',');
-    const rating = Array.from(loadedCheerio('dd.rating.tags li a.tag'))
-      .map(el => loadedCheerio(el).text().trim())
-      .join(',');
-    const warning = Array.from(loadedCheerio('dd.warning.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
     const series = Array.from(loadedCheerio('dd.series li a.tag'))
@@ -143,10 +137,16 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     const character = Array.from(loadedCheerio('dd.character.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
-    const stats = Array.from(loadedCheerio('dd.stats li a.tag'))
-      .map(el => loadedCheerio(el).text().trim())
-      .join(',');
-    novel.summary = `Fandom:\n${fandom}\n\nRating:\n${rating}\n\nWarning:\n${warning}\n\nSummary:\n${summary}\n\nSeries:\n${series}\n\nRelationships:\n${relation}\n\nCharacters:\n${character}\n\nStats:\n${stats}`;
+
+    novel.genres =
+      (relation.length > 0 ? `Relationships:\n${relation}\n\n` : ``) +
+      (character.length > 0 ? `Characters:\n${character}\n\n` : ``) +
+      (tags.length > 0 ? `Additional Tags:\n${tags}\n\n` : ``);
+
+    novel.summary =
+      `Fandom:\n${fandom}\n\n` +
+      (series.length > 0 ? `Series:\n${series}\n\n` : ``) +
+      `Summary:\n${summary}`;
     const chapterItems: Plugin.ChapterItem[] = [];
     const longReleaseDate: string[] = [];
     let match: RegExpExecArray | null;
