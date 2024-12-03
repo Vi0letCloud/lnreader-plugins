@@ -7,7 +7,7 @@ import { defaultCover } from '@libs/defaultCover';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.0';
+  version = '1.2.1';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -273,37 +273,8 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     });
     loadedCheerio('h3.landmark.heading#work').remove();
 
-    loadedCheerio('div.summary.module').each(function () {
-      const content = loadedCheerio(this).html();
-      const spoilerHTML = `
-          <div class="spoiler-container">
-              <button class="spoiler-toggle">Show/Hide Summary</button>
-              <div class="spoiler-content" style="display: none;">
-                  ${content}
-              </div>
-          </div>
-      `;
-      loadedCheerio(this).html(spoilerHTML);
-    });
-
-    loadedCheerio('div.notes.module')
-      .filter(function () {
-        return !loadedCheerio(this).find('.userstuff').length;
-      })
-      .remove();
-
-    loadedCheerio('div.notes.module').each(function () {
-      const content = loadedCheerio(this).html();
-      const spoilerHTML = `
-          <div class="spoiler-container">
-              <button class="spoiler-toggle">Show/Hide Notes</button>
-              <div class="spoiler-content" style="display: none;">
-                  ${content}
-              </div>
-          </div>
-      `;
-      loadedCheerio(this).html(spoilerHTML);
-    });
+    loadedCheerio('div.summary.module').remove();
+    loadedCheerio('div.notes.module').remove();
 
     const chapterText = loadedCheerio('div#chapters > div').html() || '';
 
