@@ -141,9 +141,10 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
 
-    const series = Array.from(loadedCheerio('dd.series li a.tag'))
-      .map(el => loadedCheerio(el).text().trim())
-      .join(',');
+    // const series = Array.from(loadedCheerio('dd.series li a.tag'))
+    //   .map(el => loadedCheerio(el).text().trim())
+    //   .join(',');
+    const series = loadedCheerio('dd.series span.position').text().trim();
 
     const relation = Array.from(loadedCheerio('dd.relationship.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
@@ -160,9 +161,9 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       (tags.length > 0 ? `Additional Tags:,${tags}` : ``);
 
     novel.summary =
-      `Fandom:\n${fandom}\n\n` +
+      (fandom.length > 0 ? `Fandom:\n${fandom}\n\n` : ``) +
       (series.length > 0 ? `Series:\n${series}\n\n` : ``) +
-      `Summary:\n${summary}`;
+      (summary.length > 0 ? `Summary:\n${summary}\n\n` : ``);
 
     const chapterItems: Plugin.ChapterItem[] = [];
     const longReleaseDate: string[] = [];
