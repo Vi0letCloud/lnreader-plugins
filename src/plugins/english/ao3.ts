@@ -7,7 +7,7 @@ import { defaultCover } from '@libs/defaultCover';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.1.0';
+  version = '1.1.1';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -273,7 +273,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     });
     loadedCheerio('h3.landmark.heading#work').remove();
     loadedCheerio('div.summary.module').remove();
-    loadedCheerio('div.notes.module').not('end').remove();
+    loadedCheerio('div.notes.module:not(.end)').remove();
 
     const chapterText = loadedCheerio('div#chapters > div').html() || '';
 
