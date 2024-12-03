@@ -8,7 +8,7 @@ import { load } from 'protobufjs';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.4';
+  version = '1.2.5';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -131,7 +131,9 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     loadedCheerio('blockquote.userstuff')
       .find('p')
       .each((i, p) => {
-        loadedCheerio(p).html()?.replace(/<br>/g, '\n');
+        let htmlContent = loadedCheerio(p).html() || '';
+        htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
+        loadedCheerio(p).html(htmlContent);
         summary += loadedCheerio(p).text().trim() + '\n\n';
       });
 
