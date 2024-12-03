@@ -273,7 +273,11 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     });
     loadedCheerio('h3.landmark.heading#work').remove();
     loadedCheerio('div.summary.module').remove();
-    loadedCheerio('div.notes.module:not(.end)').remove();
+    loadedCheerio('div.notes.module')
+      .filter(function () {
+        return !loadedCheerio(this).find('.userstuff').length;
+      })
+      .remove();
 
     const chapterText = loadedCheerio('div#chapters > div').html() || '';
 
