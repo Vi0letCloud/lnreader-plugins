@@ -17,6 +17,7 @@ class RoyalRoad implements Plugin.PluginBase {
     tempNovel.name = '';
     let isParsingNovel = false;
     let isNovelName = false;
+
     const parser = new Parser({
       onopentag(name, attribs) {
         if (attribs['class']?.includes('fiction-list-item')) {
@@ -49,8 +50,10 @@ class RoyalRoad implements Plugin.PluginBase {
         }
       },
     });
+
     parser.write(html);
     parser.end();
+
     return novels;
   }
 
@@ -63,15 +66,20 @@ class RoyalRoad implements Plugin.PluginBase {
   ): Promise<Plugin.NovelItem[]> {
     let link = `${this.site}fictions/search`;
     link += `?page=${page}`;
+
     if (!filters) filters = this.filters || {};
+
     if (showLatestNovels) link += '&orderBy=last_update';
+
     for (const key in filters) {
       if (filters[key as keyof typeof filters].value === '') continue;
+
       if (key === 'genres' || key === 'tags' || key === 'content_warnings') {
         if (filters[key].value.include)
           for (const include of filters[key].value.include) {
             link += `&tagsAdd=${include}`;
           }
+
         if (filters[key].value.exclude)
           for (const exclude of filters[key].value.exclude) {
             link += `&tagsRemove=${exclude}`;
@@ -106,6 +114,7 @@ class RoyalRoad implements Plugin.PluginBase {
     let isScript = false;
     let chapterJson: ChapterEntry[] = [];
     let volumeJson: VolumeEntry[] = [];
+
     const parser = new Parser({
       onopentag(name, attribs) {
         if (name === 'img' && attribs['class']?.includes('thumbnail')) {
@@ -192,10 +201,13 @@ class RoyalRoad implements Plugin.PluginBase {
         }
       },
     });
+
     parser.write(html);
     parser.end();
+
     novel.summary = novel.summary?.trim();
     novel.genres = genreArray.join(', ');
+
     switch (novel.status) {
       case 'ONGOING':
         novel.status = NovelStatus.Ongoing;

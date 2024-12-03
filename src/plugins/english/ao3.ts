@@ -141,9 +141,6 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
 
-    // const series = Array.from(loadedCheerio('dd.series li a.tag'))
-    //   .map(el => loadedCheerio(el).text().trim())
-    //   .join(',');
     const series = loadedCheerio('dd.series span.position').text().trim();
 
     const relation = Array.from(loadedCheerio('dd.relationship.tags li a.tag'))
