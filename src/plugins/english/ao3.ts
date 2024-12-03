@@ -124,7 +124,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     const tags = Array.from(loadedCheerio('dd.freeform.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
-    const summary = loadedCheerio('blockquote.userstuff').text().trim();
+    const summary = loadedCheerio('blockquote.userstuff').text();
     const fandom = Array.from(loadedCheerio('dd.fandom.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
@@ -139,9 +139,10 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .join(',');
 
     novel.genres =
-      (relation.length > 0 ? `Relationships:\n${relation}\n\n` : ``) +
-      (character.length > 0 ? `Characters:\n${character}\n\n` : ``) +
-      (tags.length > 0 ? `Additional Tags:\n${tags}\n\n` : ``);
+      (fandom.length > 0 ? `Fandom:,${fandom},` : ``) +
+      (relation.length > 0 ? `Relationships:,${relation},` : ``) +
+      (character.length > 0 ? `Characters:,${character},` : ``) +
+      (tags.length > 0 ? `Additional Tags:,${tags}` : ``);
 
     novel.summary =
       `Fandom:\n${fandom}\n\n` +
