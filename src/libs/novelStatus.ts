@@ -6,4 +6,6 @@ export const NovelStatus = {
   PublishingFinished: 'Publishing Finished',
   Cancelled: 'Cancelled',
   OnHiatus: 'On Hiatus',
+  Dropped: 'Dropped',
+  Stubbed: 'Stubbed',
 } as const;
