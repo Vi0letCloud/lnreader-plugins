@@ -3,11 +3,12 @@ import { fetchApi } from '@libs/fetch';
 import { Plugin } from '@typings/plugin';
 import { Filters, FilterTypes } from '@libs/filterInputs';
 import { NovelStatus } from '@libs/novelStatus';
+import { CheerioAPI, load as parseHTML } from 'cheerio';
 
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.1.2';
+  version = '2.2.0';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -94,176 +95,399 @@ class RoyalRoad implements Plugin.PluginBase {
   }
 
   async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
-    const result = await fetchApi(this.site + novelPath);
-    const html = await result.text();
+    const url = this.site + novelPath;
+    const result = await fetch(url);
+    const body = await result.text();
+    const loadedCheerio = parseHTML(body);
+
     const novel: Plugin.SourceNovel = {
       path: novelPath,
-      name: '',
+      name: loadedCheerio('.fic-title h1').text().trim(),
+      author: loadedCheerio('.fic-title h4 a').text().trim(),
+      status: NovelStatus.Unknown,
+      cover: loadedCheerio('.fic-header img.thumbnail').attr('src'),
       summary: '',
+      genres: '',
       chapters: [],
     };
-    let isNovelName = false;
-    let isAuthorName = false;
-    let isDescription = false;
-    let isH4 = false;
-    let isSpan = 0;
-    let isTags = false;
-    let isGenres = false;
-    const genreArray: string[] = [];
+
+    const firstTag = loadedCheerio(
+      'div.fiction-info > div.portlet > .col-md-8 > .margin-bottom-10 > span',
+    ).first();
+
+    function processStatus(status: string, checkNext = true) {
+      switch (status) {
+        case 'COMPLETED':
+          novel.status = NovelStatus.Completed;
+          break;
+        case 'DROPPED':
+          novel.status = NovelStatus.Dropped;
+          break;
+        case 'ONGOING':
+          novel.status = NovelStatus.Ongoing;
+          break;
+        case 'HIATUS':
+          novel.status = NovelStatus.OnHiatus;
+          break;
+        case 'STUB':
+          novel.status = NovelStatus.Stubbed;
+          break;
+        default:
+          if (checkNext) processStatus(firstTag.next().text().trim(), false);
+          novel.status = NovelStatus.Unknown;
+      }
+    }
+
+    processStatus(firstTag.text().trim());
+
+    const firstTagText = firstTag.text().trim();
+    novel.genres =
+      firstTagText === 'Original' || firstTagText === 'Fan Fiction'
+        ? firstTagText + ','
+        : '' +
+          loadedCheerio('.fiction-info span.tags')
+            .text()
+            .trim()
+            .replace(/\n\s+/g, ',');
+
+    let summary = '';
+    const elements = loadedCheerio(
+      '.fiction-info .description .hidden-content',
+    ).find('p');
+    elements.each((i, p) => {
+      let htmlContent = loadedCheerio(p).html() || '';
+      htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
+      loadedCheerio(p).html(htmlContent);
+      summary += loadedCheerio(p).text().trim();
+      if (i < elements.length - 1) {
+        summary += '\n\n';
+      }
+    });
+    novel.summary = summary.trim();
+
+    // let novelChapters = [];
+
+    // loadedCheerio('table#chapters > tbody')
+    //   .find('tr')
+    //   .each(function () {
+    //     const chapterName = loadedCheerio(this).find('td').first().text().trim();
+
+    //     let releaseDate = loadedCheerio(this)
+    //       .find('td')
+    //       .first()
+    //       .next()
+    //       .find('time')
+    //       .first()
+    //       .attr('datetime');
+    //     releaseDate = parseMadaraDate(releaseDate);
+
+    //     const chapterUrl = loadedCheerio(this)
+    //       .find('td')
+    //       .first()
+    //       .find('a')
+    //       .attr('href')
+    //       .replace('/fiction/' + novelUrl + '/chapter/', '');
+
+    //     novelChapters.push({
+    //       chapterName,
+    //       releaseDate,
+    //       chapterUrl,
+    //     });
+    //   });
+
+    // novel.chapters = novelChapters;
+
     let isFooter = false;
     let isScript = false;
     let chapterJson: ChapterEntry[] = [];
-    let volumeJson: VolumeEntry[] = [];
+    // let volumeJson: VolumeEntry[] = [];
 
     const parser = new Parser({
-      onopentag(name, attribs) {
-        if (name === 'img' && attribs['class']?.includes('thumbnail')) {
-          novel.cover = attribs['src'];
-        }
-        if (name === 'span' && attribs['class']?.includes('label-sm')) {
-          isSpan++;
-        }
-        if (name === 'span' && attribs['class']?.includes('tags')) {
-          isTags = true;
-        }
-      },
       onopentagname(name) {
-        if (name === 'h1') {
-          isNovelName = true;
-        }
-        if (isH4 && name === 'a') {
-          isAuthorName = true;
-        }
-        if (isTags && name === 'a') {
-          isGenres = true;
-        }
-        if (name === 'label') {
-          isDescription = false;
-          isTags = false;
-        }
         if (isFooter && name === 'script') {
           isScript = true;
         }
       },
       onattribute(name, value) {
-        if (name === 'class' && value === 'description') {
-          isDescription = true;
-        }
         if (name === 'class' && value === 'page-footer footer') {
           isFooter = true;
         }
       },
       ontext(data) {
-        if (isNovelName) {
-          novel.name = novel.name + data;
-        }
-        if (isAuthorName) {
-          novel.author = data;
-          isAuthorName = false;
-        }
-        if (isDescription) {
-          novel.summary += data;
-        }
-        if (isSpan === 2) {
-          novel.status = data.trim();
-          isSpan++;
-        }
-        if (isGenres) {
-          genreArray.push(data);
-        }
         if (isScript) {
           if (data.includes('window.chapters =')) {
             chapterJson = JSON.parse(
               data.match(/window.chapters = (.+])(?=;)/)![1],
             );
-            volumeJson = JSON.parse(
-              data.match(/window.volumes = (.+])(?=;)/)![1],
-            );
+            // volumeJson = JSON.parse(
+            //   data.match(/window.volumes = (.+])(?=;)/)![1],
+            // );
           }
         }
       },
       onclosetag(name) {
-        if (name === 'h1') {
-          isNovelName = false;
-          isH4 = true;
-        }
-        if (name === 'h4') {
-          isH4 = false;
-        }
-        if (name === 'a') {
-          isGenres = false;
-        }
         if (name === 'script') {
           isScript = false;
-        }
-        if (name === 'body') {
-          isFooter = false;
         }
       },
     });
 
-    parser.write(html);
+    parser.write(body);
     parser.end();
 
-    novel.summary = novel.summary?.trim();
-    novel.genres = genreArray.join(', ');
-
-    switch (novel.status) {
-      case 'ONGOING':
-        novel.status = NovelStatus.Ongoing;
-        break;
-      case 'HIATUS':
-        novel.status = NovelStatus.OnHiatus;
-        break;
-      case 'COMPLETED':
-        novel.status = NovelStatus.Completed;
-        break;
-      default:
-        novel.status = NovelStatus.Unknown;
+    function parseMadaraDate(date: string) {
+      const dateArray = date.split('-');
+      return new Date(
+        parseInt(dateArray[0], 10),
+        parseInt(dateArray[1], 10) - 1,
+        parseInt(dateArray[2], 10),
+      ).toUTCString();
     }
+
+    // export const parseMadaraDate = date => {
+    //   let releaseDate = date;
+
+    //   if (date.includes('ago')) {
+    //     let timeAgo = date;
+    //     releaseDate = new Date();
+
+    //     timeAgo = timeAgo.match(/\d+/)[0];
+
+    //     if (timeAgo.includes('hours ago') || timeAgo.includes('hour ago')) {
+    //       releaseDate.setHours(releaseDate.getHours() - timeAgo);
+    //     }
+
+    //     if (timeAgo.includes('days ago') || timeAgo.includes('day ago')) {
+    //       releaseDate.setDate(releaseDate.getDate() - timeAgo);
+    //     }
+
+    //     if (timeAgo.includes('months ago') || timeAgo.includes('month ago')) {
+    //       releaseDate.setMonth(releaseDate.getMonth() - timeAgo);
+    //     }
+    //   } else if (date.indexOf(' ') === 3) {
+    //     releaseDate = parse(releaseDate, 'MMM dd, yyyy', new Date());
+    //   } else {
+    //     releaseDate = new Date(releaseDate);
+    //   }
+
+    //   releaseDate = dayjs(releaseDate).format('LL');
+
+    //   return releaseDate;
+    // };
 
     const chapter: Plugin.ChapterItem[] = chapterJson.map(
       (chapter: ChapterEntry) => {
-        const matchingVolume = volumeJson.find(
-          (volume: VolumeEntry) => volume.id === chapter.volumeId,
-        );
+        // const matchingVolume = volumeJson.find(
+        //   (volume: VolumeEntry) => volume.id === chapter.volumeId,
+        // );
         return {
           name: chapter.title,
           path: chapter.url.slice(1),
-          releaseTime: chapter.date,
+          releaseTime: parseMadaraDate(chapter.date),
           chapterNumber: chapter?.order,
-          page: matchingVolume?.title,
+          // page: matchingVolume?.title,
         };
       },
     );
 
     novel.chapters = chapter;
+
     return novel;
   }
 
-  async parseChapter(chapterPath: string): Promise<string> {
-    const result = await fetchApi(this.site + chapterPath);
-    const html = await result.text();
-    const parts: string[] = [];
-    const regexPatterns: RegExp[] = [
-      /<style>\n\s+.(.+?){[^]+?display: none;/,
-      /(<div class="portlet solid author-note-portlet"[^]+?)<div class="margin-bottom-20/,
-      /(<div class="chapter-inner chapter-content"[^]+?)<div class="portlet light t-center-3/,
-      /(<\/div>\s+<div class="portlet solid author-note-portlet"[^]+?)<div class="row margin-bottom-10/,
-    ];
+  // async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
+  //   const result = await fetchApi(this.site + novelPath);
+  //   const html = await result.text();
+  //   const novel: Plugin.SourceNovel = {
+  //     path: novelPath,
+  //     name: '',
+  //     summary: '',
+  //     chapters: [],
+  //   };
+  //   let isNovelName = false;
+  //   let isAuthorName = false;
+  //   let isDescription = false;
+  //   let isH4 = false;
+  //   let isSpan = 0;
+  //   let isTags = false;
+  //   let isGenres = false;
+  //   const genreArray: string[] = [];
+  //   let isFooter = false;
+  //   let isScript = false;
+  //   let chapterJson: ChapterEntry[] = [];
+  //   let volumeJson: VolumeEntry[] = [];
 
-    const extractContent = (patterns: RegExp[]) => {
-      patterns.forEach(regex => {
-        const match = html.match(regex)?.[1];
-        if (match) parts.push(match);
+  //   const parser = new Parser({
+  //     onopentag(name, attribs) {
+  //       if (name === 'img' && attribs['class']?.includes('thumbnail')) {
+  //         novel.cover = attribs['src'];
+  //       }
+  //       if (name === 'span' && attribs['class']?.includes('label-sm')) {
+  //         isSpan++;
+  //       }
+  //       if (name === 'span' && attribs['class']?.includes('tags')) {
+  //         isTags = true;
+  //       }
+  //     },
+  //     onopentagname(name) {
+  //       if (name === 'h1') {
+  //         isNovelName = true;
+  //       }
+  //       if (isH4 && name === 'a') {
+  //         isAuthorName = true;
+  //       }
+  //       if (isTags && name === 'a') {
+  //         isGenres = true;
+  //       }
+  //       if (name === 'label') {
+  //         isDescription = false;
+  //         isTags = false;
+  //       }
+  //       if (isFooter && name === 'script') {
+  //         isScript = true;
+  //       }
+  //     },
+  //     onattribute(name, value) {
+  //       if (name === 'class' && value === 'description') {
+  //         isDescription = true;
+  //       }
+  //       if (name === 'class' && value === 'page-footer footer') {
+  //         isFooter = true;
+  //       }
+  //     },
+  //     ontext(data) {
+  //       if (isNovelName) {
+  //         novel.name = novel.name + data;
+  //       }
+  //       if (isAuthorName) {
+  //         novel.author = data;
+  //         isAuthorName = false;
+  //       }
+  //       if (isDescription) {
+  //         novel.summary += data;
+  //       }
+  //       if (isSpan === 2) {
+  //         novel.status = data.trim();
+  //         isSpan++;
+  //       }
+  //       if (isGenres) {
+  //         genreArray.push(data);
+  //       }
+  //       if (isScript) {
+  //         if (data.includes('window.chapters =')) {
+  //           chapterJson = JSON.parse(
+  //             data.match(/window.chapters = (.+])(?=;)/)![1],
+  //           );
+  //           volumeJson = JSON.parse(
+  //             data.match(/window.volumes = (.+])(?=;)/)![1],
+  //           );
+  //         }
+  //       }
+  //     },
+  //     onclosetag(name) {
+  //       if (name === 'h1') {
+  //         isNovelName = false;
+  //         isH4 = true;
+  //       }
+  //       if (name === 'h4') {
+  //         isH4 = false;
+  //       }
+  //       if (name === 'a') {
+  //         isGenres = false;
+  //       }
+  //       if (name === 'script') {
+  //         isScript = false;
+  //       }
+  //       if (name === 'body') {
+  //         isFooter = false;
+  //       }
+  //     },
+  //   });
+
+  //   parser.write(html);
+  //   parser.end();
+
+  //   novel.summary = novel.summary?.trim();
+  //   novel.genres = genreArray.join(', ');
+
+  //   switch (novel.status) {
+  //     case 'ONGOING':
+  //       novel.status = NovelStatus.Ongoing;
+  //       break;
+  //     case 'HIATUS':
+  //       novel.status = NovelStatus.OnHiatus;
+  //       break;
+  //     case 'COMPLETED':
+  //       novel.status = NovelStatus.Completed;
+  //       break;
+  //     default:
+  //       novel.status = NovelStatus.Unknown;
+  //   }
+
+  //   const chapter: Plugin.ChapterItem[] = chapterJson.map(
+  //     (chapter: ChapterEntry) => {
+  //       const matchingVolume = volumeJson.find(
+  //         (volume: VolumeEntry) => volume.id === chapter.volumeId,
+  //       );
+  //       return {
+  //         name: chapter.title,
+  //         path: chapter.url.slice(1),
+  //         releaseTime: chapter.date,
+  //         chapterNumber: chapter?.order,
+  //         page: matchingVolume?.title,
+  //       };
+  //     },
+  //   );
+
+  //   novel.chapters = chapter;
+  //   return novel;
+  // }
+
+  async parseChapter(chapterPath: string): Promise<string> {
+    const url = this.site + chapterPath;
+    const result = await fetch(url);
+    const body = await result.text();
+    const loadedCheerio = parseHTML(body);
+
+    const chapterName =
+      '<h3>' + loadedCheerio('h1.font-white').text().trim() + '</h3><br/>';
+
+    const classNames: string[] = [];
+    const classRegex = /\.([^{]+)\s*{/g;
+
+    loadedCheerio('style').each(function () {
+      let match;
+      const styleContent = loadedCheerio(this).html() || '';
+      if (
+        styleContent.includes('display: none') ||
+        styleContent.includes('display:none') ||
+        styleContent.includes('speak: never') ||
+        styleContent.includes('speak:never')
+      ) {
+        while ((match = classRegex.exec(styleContent)) !== null) {
+          classNames.push(match[1]);
+        }
+      }
+    });
+
+    loadedCheerio('div.chapter-content')
+      .children()
+      .each(function () {
+        for (const className of classNames) {
+          if (loadedCheerio(this).attr('class') === className) {
+            loadedCheerio(this).html('');
+          }
+        }
       });
-    };
-    extractContent(regexPatterns);
-    const cleanup = new RegExp(`<p class="${parts[0]}.+?</p>`, 'g');
-    const chapterText = parts.slice(1).join('<hr>');
-    return chapterText
-      .replace(cleanup, '')
-      .replace(/<p class="[^><]+>/g, '<p>');
+
+    loadedCheerio('div.chapter-content')
+      .find('div.chapter-content p')
+      .first()
+      .html('');
+
+    const chapterText = loadedCheerio('div.chapter-content').html();
+
+    return chapterName + chapterText;
   }
 
   async searchNovels(
