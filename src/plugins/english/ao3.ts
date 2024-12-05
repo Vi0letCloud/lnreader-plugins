@@ -128,7 +128,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .join(',');
 
     let summary = '';
-    loadedCheerio('blockquote.userstuff')
+    loadedCheerio('.preface.group .summary.module blockquote.userstuff')
       .find('p')
       .each((i, p) => {
         let htmlContent = loadedCheerio(p).html() || '';
