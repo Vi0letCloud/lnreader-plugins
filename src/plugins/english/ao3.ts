@@ -3,12 +3,11 @@ import { fetchApi } from '@libs/fetch';
 import { Plugin } from '@typings/plugin';
 import { Filters, FilterTypes } from '@libs/filterInputs';
 import { defaultCover } from '@libs/defaultCover';
-import { load } from 'protobufjs';
 
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.8';
+  version = '1.2.9';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -62,12 +61,18 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
         link += `&work_search%5Bcomplete%5D=${filters.completion.value}`;
       if (filters.crossover.value !== '')
         link += `&work_search%5Bcrossover%5D=${filters.crossover.value}`;
-      if (filters.categories.value.length > 0) {
+      if (
+        Array.isArray(filters.categories.value) &&
+        filters.categories.value.length > 0
+      ) {
         filters.categories.value.forEach((category: string) => {
           link += `&work_search%5Bcategory_ids%5D%5B%5D=${category}`;
         });
       }
-      if (filters.warningsFilter.value.length > 0) {
+      if (
+        Array.isArray(filters.warningsFilter.value) &&
+        filters.warningsFilter.value.length > 0
+      ) {
         filters.warningsFilter.value.forEach((warning: string) => {
           link += `&work_search%5Barchive_warning_ids%5D%5B%5D=${warning}`;
         });
@@ -170,13 +175,11 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
 
     const chapterItems: Plugin.ChapterItem[] = [];
     const longReleaseDate: string[] = [];
-    let match: RegExpExecArray | null;
 
     chapterlistload('ol.index').each((i, ele) => {
       chapterlistload(ele)
         .find('li')
         .each((i, el) => {
-          const chapterNameMatch = chapterlistload(el).find('a').text().trim();
           const releaseTimeText = chapterlistload(el)
             .find('span.datetime')
             .text()
@@ -197,7 +200,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       ? new Date(releaseTimeText).toISOString()
       : '';
 
-    let dateCounter: number = 0;
+    let dateCounter = 0;
 
     if (loadedCheerio('#chapter_index select').length > 0) {
       loadedCheerio('#chapter_index select').each((i, selectEl) => {
