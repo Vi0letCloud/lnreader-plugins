@@ -4,15 +4,13 @@ import { FilterTypes, Filters } from '@libs/filterInputs';
 import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { parse } from 'date-fns';
 
 class ScribbleHubPlugin implements Plugin.PluginBase {
   id = 'scribblehub';
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.9';
+  version = '1.2.10';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -150,80 +148,54 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
     const chapter: Plugin.ChapterItem[] = [];
 
-    dayjs.extend(customParseFormat);
-
-    // const parseISODate = (date: string) => {
-    //   if (date.includes('ago')) {
-    //     const dayJSDate = dayjs(new Date()); // today
-    //     const timeAgo = date.match(/\d+/)?.[0] || '';
-    //     const timeAgoInt = parseInt(timeAgo, 10);
-
-    //     if (!timeAgo) return null; // there is no number!
-
-    //     if (date.includes('hours ago') || date.includes('hour ago')) {
-    //       return dayJSDate.subtract(timeAgoInt, 'hours').toISOString(); // go back N hours
-    //     }
-
-    //     if (date.includes('days ago') || date.includes('day ago')) {
-    //       return dayJSDate.subtract(timeAgoInt, 'days').toISOString(); // go back N days
-    //     }
-
-    //     if (date.includes('months ago') || date.includes('month ago')) {
-    //       return dayJSDate.subtract(timeAgoInt, 'months').toISOString(); // go back N months
-    //     }
-
-    //     return dayJSDate.toISOString();
-    //   } else if (date.indexOf(' ') === 3) {
-    //     // Explicit parsing for "MMM dd, yyyy" (handles both single and double digits)
-    //     const parsedDate = dayjs(date, ['MMM D, YYYY', 'MMM DD, YYYY'], true); // Multiple formats for flexibility
-
-    //     if (!parsedDate.isValid()) {
-    //       console.warn(`Invalid date format: ${date}`);
-    //     }
-
-    //     return parsedDate.toISOString();
-    //   } else {
-    //     // Default ISO-like parsing fallback
-    //     const parsedDate = dayjs(date);
-    //     if (!parsedDate.isValid()) {
-    //       console.warn(`Invalid date format: ${date}`);
-    //     }
-    //     return parsedDate.toISOString();
-    //   }
-    // };
-
-    const parseMadaraDate = (date: string) => {
-      let releaseDate: Date;
-
+    const parseISODate = (date: string) => {
       if (date.includes('ago')) {
-        let timeAgo = date;
-        releaseDate = new Date();
+        const dayJSDate = dayjs(new Date()); // today
+        const timeAgo = date.match(/\d+/)?.[0] || '';
+        const timeAgoInt = parseInt(timeAgo, 10);
 
-        const match = timeAgo.match(/\d+/);
-        if (match) {
-          timeAgo = match[0];
+        if (!timeAgo) return null; // there is no number!
+
+        if (date.includes('hours ago') || date.includes('hour ago')) {
+          dayJSDate.subtract(timeAgoInt, 'hours'); // go back N hours
         }
 
-        if (timeAgo.includes('hours ago') || timeAgo.includes('hour ago')) {
-          releaseDate.setHours(releaseDate.getHours() - parseInt(timeAgo));
+        if (date.includes('days ago') || date.includes('day ago')) {
+          dayJSDate.subtract(timeAgoInt, 'days'); // go back N days
         }
 
-        if (timeAgo.includes('days ago') || timeAgo.includes('day ago')) {
-          releaseDate.setDate(releaseDate.getDate() - parseInt(timeAgo));
+        if (date.includes('months ago') || date.includes('month ago')) {
+          dayJSDate.subtract(timeAgoInt, 'months'); // go back N months
         }
 
-        if (timeAgo.includes('months ago') || timeAgo.includes('month ago')) {
-          releaseDate.setMonth(releaseDate.getMonth() - parseInt(timeAgo));
-        }
-      } else if (date.indexOf(' ') === 3) {
-        releaseDate = parse(date, 'MMM dd, yyyy', new Date());
-      } else {
-        releaseDate = new Date(date);
+        return dayJSDate.toISOString();
       }
 
-      releaseDate = new Date(dayjs(releaseDate).format('LL'));
+      const [monthStr, day, year] = date.replace(',', '').split(' ');
+      const months = {
+        Jan: 0,
+        Feb: 1,
+        Mar: 2,
+        Apr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Aug: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dec: 11,
+      };
 
-      return releaseDate;
+      const monthInt = months[monthStr.trim() as keyof typeof months];
+      const dayInt = parseInt(day.trim());
+      const yearInt = parseInt(year.trim());
+
+      if (monthInt === undefined || isNaN(dayInt) || isNaN(yearInt)) {
+        return null;
+      }
+
+      return new Date(Date.UTC(yearInt, monthInt, dayInt)).toISOString();
     };
 
     loadedCheerio('.toc_w').each((i, el) => {
@@ -234,7 +206,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
       if (!chapterUrl) return;
       chapter.push({
         name: chapterName,
-        releaseTime: parseMadaraDate(releaseDate).toISOString(),
+        releaseTime: parseISODate(releaseDate),
         path: chapterUrl.replace(this.site, ''),
       });
     });
