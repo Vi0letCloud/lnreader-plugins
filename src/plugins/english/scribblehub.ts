@@ -11,7 +11,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.7';
+  version = '1.2.8';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -177,7 +177,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
         const parsedDate = dayjs(date, ['MMM D, YYYY', 'MMM DD, YYYY'], true); // Multiple formats for flexibility
 
         if (!parsedDate.isValid()) {
-          console.error(`Invalid date format: ${date}`);
+          console.warn(`Invalid date format: ${date}`);
         }
 
         return parsedDate.toISOString();
@@ -185,7 +185,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
         // Default ISO-like parsing fallback
         const parsedDate = dayjs(date);
         if (!parsedDate.isValid()) {
-          console.error(`Invalid date format: ${date}`);
+          console.warn(`Invalid date format: ${date}`);
         }
         return parsedDate.toISOString();
       }
