@@ -118,7 +118,6 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
       .map((i, el) => loadedCheerio(el).text().trim())
       .toArray()
       .join(',');
-
     genres +=
       ',' +
       loadedCheerio('.wi_fic_showtags_inner')
@@ -126,33 +125,13 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
         .map((i, el) => loadedCheerio(el).text().trim())
         .toArray()
         .join(',');
-
     novel.genres = genres;
-
-    let summary = '';
-    loadedCheerio('span.morelink.list').html('');
-    // summary += loadedCheerio('.wi_fic_desc > div')
-    //   .eq(0)
-    //   .contents()
-    //   .filter((_, el) => el.type === 'text')
-    //   .text()
-    //   .trim();
-    // const desc = loadedCheerio('.wi_fic_desc .testhide');
-    // if (desc.length > 0) {
-    //   desc.find('p').each((i, p) => {
-    //     loadedCheerio(p).html('\n\n');
-    //     summary += loadedCheerio(p).text().trim();
-    //   });
-    //   summary += desc.text().trim();
-    // }
 
     const desc = loadedCheerio('.wi_fic_desc > div');
     const summaryHTML = desc.html() || '';
     desc.html(summaryHTML.replace(/<p[^>]*>.*?<\/p>/g, '\n\n'));
 
     novel.summary = desc.text().trim();
-
-    // novel.summary = summary;
 
     const formData = new FormData();
     formData.append('action', 'wi_getreleases_pagination');
@@ -191,7 +170,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
         return dayJSDate.toISOString();
       }
-      return null; // new Date(date).toISOString();
+      return new Date(date).toISOString();
     };
 
     loadedCheerio('.toc_w').each((i, el) => {
