@@ -10,7 +10,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.4';
+  version = '1.2.5';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -170,12 +170,12 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
         return dayJSDate.toISOString();
       }
-      return new Date(date).toISOString();
+      return dayjs(date).toISOString();
     };
 
     loadedCheerio('.toc_w').each((i, el) => {
-      const chapterName = loadedCheerio(el).find('.toc_a').text();
-      const releaseDate = loadedCheerio(el).find('.fic_date_pub').text();
+      const chapterName = loadedCheerio(el).find('.toc_a').text().trim();
+      const releaseDate = loadedCheerio(el).find('.fic_date_pub').text().trim();
       const chapterUrl = loadedCheerio(el).find('a').attr('href');
 
       if (!chapterUrl) return;
