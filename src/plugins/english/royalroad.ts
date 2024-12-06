@@ -111,44 +111,44 @@ class RoyalRoad implements Plugin.PluginBase {
       chapters: [],
     };
 
-    const firstTag = loadedCheerio(
-      'div.fiction-info > div.portlet > .col-md-8 > .margin-bottom-10 > span',
-    ).first();
+    const status = loadedCheerio(
+      'div.fiction-info > div.portlet > .col-md-8 > .margin-bottom-10 > span.label',
+    )
+      .eq(1)
+      .text()
+      .trim();
 
-    function processStatus(status: string, checkNext = true) {
-      switch (status) {
-        case 'COMPLETED':
-          novel.status = NovelStatus.Completed;
-          break;
-        case 'DROPPED':
-          novel.status = NovelStatus.Dropped;
-          break;
-        case 'ONGOING':
-          novel.status = NovelStatus.Ongoing;
-          break;
-        case 'HIATUS':
-          novel.status = NovelStatus.OnHiatus;
-          break;
-        case 'STUB':
-          novel.status = NovelStatus.Stubbed;
-          break;
-        default:
-          if (checkNext) processStatus(firstTag.next().text().trim(), false);
-          novel.status = NovelStatus.Unknown;
-      }
+    switch (status) {
+      case 'COMPLETED':
+        novel.status = NovelStatus.Completed;
+        break;
+      case 'DROPPED':
+        novel.status = NovelStatus.Dropped;
+        break;
+      case 'ONGOING':
+        novel.status = NovelStatus.Ongoing;
+        break;
+      case 'HIATUS':
+        novel.status = NovelStatus.OnHiatus;
+        break;
+      case 'STUB':
+        novel.status = NovelStatus.Stubbed;
+        break;
+      default:
+        novel.status = NovelStatus.Unknown;
     }
 
-    processStatus(firstTag.text().trim());
-
-    const firstTagText = firstTag.text().trim();
     novel.genres =
-      firstTagText === 'Original' || firstTagText === 'Fan Fiction'
-        ? firstTagText + ','
-        : '' +
-          loadedCheerio('.fiction-info span.tags')
-            .text()
-            .trim()
-            .replace(/\n\s+/g, ',');
+      loadedCheerio(
+        'div.fiction-info > div.portlet > .col-md-8 > .margin-bottom-10 > span.label',
+      )
+        .text()
+        .trim() +
+      ',' +
+      loadedCheerio('.fiction-info span.tags')
+        .text()
+        .trim()
+        .replace(/\n\s+/g, ',');
 
     let summary = '';
     const elements = loadedCheerio(
@@ -235,15 +235,6 @@ class RoyalRoad implements Plugin.PluginBase {
     parser.write(body);
     parser.end();
 
-    function parseMadaraDate(date: string) {
-      const dateArray = date.split('-');
-      return new Date(
-        parseInt(dateArray[0], 10),
-        parseInt(dateArray[1], 10) - 1,
-        parseInt(dateArray[2], 10),
-      ).toUTCString();
-    }
-
     // export const parseMadaraDate = date => {
     //   let releaseDate = date;
 
@@ -283,7 +274,7 @@ class RoyalRoad implements Plugin.PluginBase {
         return {
           name: chapter.title,
           path: chapter.url.slice(1),
-          releaseTime: parseMadaraDate(chapter.date),
+          releaseTime: new Date(chapter.date.split('T')[0]).toISOString(),
           chapterNumber: chapter?.order,
           // page: matchingVolume?.title,
         };
@@ -479,11 +470,6 @@ class RoyalRoad implements Plugin.PluginBase {
           }
         }
       });
-
-    loadedCheerio('div.chapter-content')
-      .find('div.chapter-content p')
-      .first()
-      .html('');
 
     const chapterText = loadedCheerio('div.chapter-content').html();
 
