@@ -2,6 +2,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 import { fetchApi } from '@libs/fetch';
 import { FilterTypes, Filters } from '@libs/filterInputs';
 import { Plugin } from '@typings/plugin';
+import { NovelStatus } from '@libs/novelStatus';
 import dayjs from 'dayjs';
 
 class ScribbleHubPlugin implements Plugin.PluginBase {
@@ -9,7 +10,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.0.1';
+  version = '1.2.0';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -92,21 +93,57 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
     const novel: Plugin.SourceNovel = {
       path: novelPath,
-      name: loadedCheerio('.fic_title').text() || 'Untitled',
+      name: loadedCheerio('.fic_title').text().trim(),
+      author: loadedCheerio('.auth_name_fic').text().trim(),
+      status: NovelStatus.Unknown,
       cover: loadedCheerio('.fic_image > img').attr('src'),
-      summary: loadedCheerio('.wi_fic_desc').text(),
-      author: loadedCheerio('.auth_name_fic').text(),
+      summary: '',
+      genres: '',
       chapters: [],
     };
 
-    novel.genres = loadedCheerio('.fic_genre')
+    const statusText = loadedCheerio('.rnd_stats').next().text();
+    if (statusText.includes('Completed')) {
+      novel.status = NovelStatus.Completed;
+    } else if (statusText.includes('Hiatus')) {
+      novel.status = NovelStatus.OnHiatus;
+    } else if (statusText.includes('Ongoing')) {
+      novel.status = NovelStatus.Ongoing;
+    } else {
+      novel.status = NovelStatus.Unknown;
+    }
+
+    let genres = loadedCheerio('.fic_genre')
+      .children()
       .map((i, el) => loadedCheerio(el).text())
       .toArray()
       .join(',');
 
-    novel.status = loadedCheerio('.rnd_stats').next().text().includes('Ongoing')
-      ? 'Ongoing'
-      : 'Completed';
+    genres += loadedCheerio('.wi_fic_showtags_inner')
+      .children()
+      .map((i, el) => loadedCheerio(el).text())
+      .toArray()
+      .join(',');
+
+    novel.genres = genres;
+
+    loadedCheerio('span.morelink.list').html('');
+    let summary = '';
+    summary += loadedCheerio('.wi_fic_desc').eq(0).text().trim();
+    if (loadedCheerio('.wi_fic_desc .testhide').length > 0) {
+      summary += '\n\n';
+      const elements = loadedCheerio('.wi_fic_desc .testhide').find('p');
+      elements.each((i, p) => {
+        let htmlContent = loadedCheerio(p).html() || '';
+        htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
+        loadedCheerio(p).html(htmlContent);
+        summary += loadedCheerio(p).text().trim();
+        if (i < elements.length - 1) {
+          summary += '\n\n';
+        }
+      });
+    }
+    novel.summary = summary;
 
     const formData = new FormData();
     formData.append('action', 'wi_getreleases_pagination');
@@ -145,7 +182,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
         return dayJSDate.toISOString();
       }
-      return null;
+      return new Date(date).toISOString();
     };
 
     loadedCheerio('.toc_w').each((i, el) => {
@@ -172,8 +209,21 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
     const loadedCheerio = parseHTML(body);
 
+    const chapterTitle =
+      '<h3>' + loadedCheerio('.chapter-title').text().trim() + '</h3><br/>';
+
+    loadedCheerio('div.wi_authornotes').html('');
+    loadedCheerio('div.wi_news').html('');
+
+    loadedCheerio('div.chp_raw')
+      .find('sp-wrap')
+      .each((i, el) => {
+        const spoilerContent = loadedCheerio(el).find('sp-body').html() || '';
+        loadedCheerio(el).html(spoilerContent);
+      });
+
     const chapterText = loadedCheerio('div.chp_raw').html() || '';
-    return chapterText;
+    return chapterTitle + chapterText;
   }
 
   async searchNovels(searchTerm: string): Promise<Plugin.NovelItem[]> {
