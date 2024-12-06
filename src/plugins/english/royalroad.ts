@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.1';
+  version = '2.2.2';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -142,6 +142,7 @@ class RoyalRoad implements Plugin.PluginBase {
       loadedCheerio(
         'div.fiction-info > div.portlet > .col-md-8 > .margin-bottom-10 > span.label',
       )
+        .eq(0)
         .text()
         .trim() +
       ',' +
@@ -165,118 +166,26 @@ class RoyalRoad implements Plugin.PluginBase {
     });
     novel.summary = summary.trim();
 
-    // let novelChapters = [];
-
-    // loadedCheerio('table#chapters > tbody')
-    //   .find('tr')
-    //   .each(function () {
-    //     const chapterName = loadedCheerio(this).find('td').first().text().trim();
-
-    //     let releaseDate = loadedCheerio(this)
-    //       .find('td')
-    //       .first()
-    //       .next()
-    //       .find('time')
-    //       .first()
-    //       .attr('datetime');
-    //     releaseDate = parseMadaraDate(releaseDate);
-
-    //     const chapterUrl = loadedCheerio(this)
-    //       .find('td')
-    //       .first()
-    //       .find('a')
-    //       .attr('href')
-    //       .replace('/fiction/' + novelUrl + '/chapter/', '');
-
-    //     novelChapters.push({
-    //       chapterName,
-    //       releaseDate,
-    //       chapterUrl,
-    //     });
-    //   });
-
-    // novel.chapters = novelChapters;
-
-    let isFooter = false;
-    let isScript = false;
     let chapterJson: ChapterEntry[] = [];
-    // let volumeJson: VolumeEntry[] = [];
 
-    const parser = new Parser({
-      onopentagname(name) {
-        if (isFooter && name === 'script') {
-          isScript = true;
+    loadedCheerio('script').each((i, script) => {
+      const scriptContent = loadedCheerio(script).html() || '';
+
+      if (scriptContent.includes('window.chapters =')) {
+        const match = scriptContent.match(/window.chapters = (.+?);/);
+        if (match) {
+          chapterJson = JSON.parse(match[1]);
         }
-      },
-      onattribute(name, value) {
-        if (name === 'class' && value === 'page-footer footer') {
-          isFooter = true;
-        }
-      },
-      ontext(data) {
-        if (isScript) {
-          if (data.includes('window.chapters =')) {
-            chapterJson = JSON.parse(
-              data.match(/window.chapters = (.+])(?=;)/)![1],
-            );
-            // volumeJson = JSON.parse(
-            //   data.match(/window.volumes = (.+])(?=;)/)![1],
-            // );
-          }
-        }
-      },
-      onclosetag(name) {
-        if (name === 'script') {
-          isScript = false;
-        }
-      },
+      }
     });
-
-    parser.write(body);
-    parser.end();
-
-    // export const parseMadaraDate = date => {
-    //   let releaseDate = date;
-
-    //   if (date.includes('ago')) {
-    //     let timeAgo = date;
-    //     releaseDate = new Date();
-
-    //     timeAgo = timeAgo.match(/\d+/)[0];
-
-    //     if (timeAgo.includes('hours ago') || timeAgo.includes('hour ago')) {
-    //       releaseDate.setHours(releaseDate.getHours() - timeAgo);
-    //     }
-
-    //     if (timeAgo.includes('days ago') || timeAgo.includes('day ago')) {
-    //       releaseDate.setDate(releaseDate.getDate() - timeAgo);
-    //     }
-
-    //     if (timeAgo.includes('months ago') || timeAgo.includes('month ago')) {
-    //       releaseDate.setMonth(releaseDate.getMonth() - timeAgo);
-    //     }
-    //   } else if (date.indexOf(' ') === 3) {
-    //     releaseDate = parse(releaseDate, 'MMM dd, yyyy', new Date());
-    //   } else {
-    //     releaseDate = new Date(releaseDate);
-    //   }
-
-    //   releaseDate = dayjs(releaseDate).format('LL');
-
-    //   return releaseDate;
-    // };
 
     const chapter: Plugin.ChapterItem[] = chapterJson.map(
       (chapter: ChapterEntry) => {
-        // const matchingVolume = volumeJson.find(
-        //   (volume: VolumeEntry) => volume.id === chapter.volumeId,
-        // );
         return {
           name: chapter.title,
           path: chapter.url.slice(1),
           releaseTime: new Date(chapter.date.split('T')[0]).toISOString(),
           chapterNumber: chapter?.order,
-          // page: matchingVolume?.title,
         };
       },
     );
@@ -285,154 +194,6 @@ class RoyalRoad implements Plugin.PluginBase {
 
     return novel;
   }
-
-  // async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
-  //   const result = await fetchApi(this.site + novelPath);
-  //   const html = await result.text();
-  //   const novel: Plugin.SourceNovel = {
-  //     path: novelPath,
-  //     name: '',
-  //     summary: '',
-  //     chapters: [],
-  //   };
-  //   let isNovelName = false;
-  //   let isAuthorName = false;
-  //   let isDescription = false;
-  //   let isH4 = false;
-  //   let isSpan = 0;
-  //   let isTags = false;
-  //   let isGenres = false;
-  //   const genreArray: string[] = [];
-  //   let isFooter = false;
-  //   let isScript = false;
-  //   let chapterJson: ChapterEntry[] = [];
-  //   let volumeJson: VolumeEntry[] = [];
-
-  //   const parser = new Parser({
-  //     onopentag(name, attribs) {
-  //       if (name === 'img' && attribs['class']?.includes('thumbnail')) {
-  //         novel.cover = attribs['src'];
-  //       }
-  //       if (name === 'span' && attribs['class']?.includes('label-sm')) {
-  //         isSpan++;
-  //       }
-  //       if (name === 'span' && attribs['class']?.includes('tags')) {
-  //         isTags = true;
-  //       }
-  //     },
-  //     onopentagname(name) {
-  //       if (name === 'h1') {
-  //         isNovelName = true;
-  //       }
-  //       if (isH4 && name === 'a') {
-  //         isAuthorName = true;
-  //       }
-  //       if (isTags && name === 'a') {
-  //         isGenres = true;
-  //       }
-  //       if (name === 'label') {
-  //         isDescription = false;
-  //         isTags = false;
-  //       }
-  //       if (isFooter && name === 'script') {
-  //         isScript = true;
-  //       }
-  //     },
-  //     onattribute(name, value) {
-  //       if (name === 'class' && value === 'description') {
-  //         isDescription = true;
-  //       }
-  //       if (name === 'class' && value === 'page-footer footer') {
-  //         isFooter = true;
-  //       }
-  //     },
-  //     ontext(data) {
-  //       if (isNovelName) {
-  //         novel.name = novel.name + data;
-  //       }
-  //       if (isAuthorName) {
-  //         novel.author = data;
-  //         isAuthorName = false;
-  //       }
-  //       if (isDescription) {
-  //         novel.summary += data;
-  //       }
-  //       if (isSpan === 2) {
-  //         novel.status = data.trim();
-  //         isSpan++;
-  //       }
-  //       if (isGenres) {
-  //         genreArray.push(data);
-  //       }
-  //       if (isScript) {
-  //         if (data.includes('window.chapters =')) {
-  //           chapterJson = JSON.parse(
-  //             data.match(/window.chapters = (.+])(?=;)/)![1],
-  //           );
-  //           volumeJson = JSON.parse(
-  //             data.match(/window.volumes = (.+])(?=;)/)![1],
-  //           );
-  //         }
-  //       }
-  //     },
-  //     onclosetag(name) {
-  //       if (name === 'h1') {
-  //         isNovelName = false;
-  //         isH4 = true;
-  //       }
-  //       if (name === 'h4') {
-  //         isH4 = false;
-  //       }
-  //       if (name === 'a') {
-  //         isGenres = false;
-  //       }
-  //       if (name === 'script') {
-  //         isScript = false;
-  //       }
-  //       if (name === 'body') {
-  //         isFooter = false;
-  //       }
-  //     },
-  //   });
-
-  //   parser.write(html);
-  //   parser.end();
-
-  //   novel.summary = novel.summary?.trim();
-  //   novel.genres = genreArray.join(', ');
-
-  //   switch (novel.status) {
-  //     case 'ONGOING':
-  //       novel.status = NovelStatus.Ongoing;
-  //       break;
-  //     case 'HIATUS':
-  //       novel.status = NovelStatus.OnHiatus;
-  //       break;
-  //     case 'COMPLETED':
-  //       novel.status = NovelStatus.Completed;
-  //       break;
-  //     default:
-  //       novel.status = NovelStatus.Unknown;
-  //   }
-
-  //   const chapter: Plugin.ChapterItem[] = chapterJson.map(
-  //     (chapter: ChapterEntry) => {
-  //       const matchingVolume = volumeJson.find(
-  //         (volume: VolumeEntry) => volume.id === chapter.volumeId,
-  //       );
-  //       return {
-  //         name: chapter.title,
-  //         path: chapter.url.slice(1),
-  //         releaseTime: chapter.date,
-  //         chapterNumber: chapter?.order,
-  //         page: matchingVolume?.title,
-  //       };
-  //     },
-  //   );
-
-  //   novel.chapters = chapter;
-  //   return novel;
-  // }
 
   async parseChapter(chapterPath: string): Promise<string> {
     const url = this.site + chapterPath;
