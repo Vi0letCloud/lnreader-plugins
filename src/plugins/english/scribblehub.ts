@@ -10,7 +10,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.1';
+  version = '1.2.2';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -131,21 +131,25 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
     let summary = '';
     loadedCheerio('span.morelink.list').html('');
-    summary += loadedCheerio('.wi_fic_desc')
-      .eq(0)
-      .contents()
-      .filter((_, el) => el.type === 'text')
-      .text()
-      .trim();
-    const desc = loadedCheerio('.wi_fic_desc .testhide');
-    if (desc.length > 0) {
-      desc.find('p').each((i, p) => {
-        loadedCheerio(p).html('\n\n');
-        summary += loadedCheerio(p).text().trim();
-      });
-      summary += '\n\n' + desc.text().trim();
-    }
-    novel.summary = summary;
+    // summary += loadedCheerio('.wi_fic_desc > div')
+    //   .eq(0)
+    //   .contents()
+    //   .filter((_, el) => el.type === 'text')
+    //   .text()
+    //   .trim();
+    // const desc = loadedCheerio('.wi_fic_desc .testhide');
+    // if (desc.length > 0) {
+    //   desc.find('p').each((i, p) => {
+    //     loadedCheerio(p).html('\n\n');
+    //     summary += loadedCheerio(p).text().trim();
+    //   });
+    //   summary += desc.text().trim();
+    // }
+
+    const summaryHTML = loadedCheerio('.wi_fic_desc > div').html() || '';
+    novel.summary = summaryHTML.replace(/<p[^>]*>.*?<\/p>/g, '\n\n');
+
+    // novel.summary = summary;
 
     const formData = new FormData();
     formData.append('action', 'wi_getreleases_pagination');
