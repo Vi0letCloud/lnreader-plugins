@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.0';
+  version = '2.2.1';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
