@@ -4,13 +4,14 @@ import { FilterTypes, Filters } from '@libs/filterInputs';
 import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import dayjs from 'dayjs';
+import { parse } from 'date-fns';
 
 class ScribbleHubPlugin implements Plugin.PluginBase {
   id = 'scribblehub';
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.5';
+  version = '1.2.6';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -169,8 +170,11 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
         }
 
         return dayJSDate.toISOString();
+      } else if (date.indexOf(' ') === 3) {
+        return parse(date, 'MMM dd, yyyy', new Date());
+      } else {
+        return dayjs(date).format('LL');
       }
-      return dayjs(date).toISOString();
     };
 
     loadedCheerio('.toc_w').each((i, el) => {
