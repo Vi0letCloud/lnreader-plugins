@@ -113,35 +113,32 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
       novel.status = NovelStatus.Unknown;
     }
 
-    let genres = loadedCheerio('.fic_genre')
+    let genres = loadedCheerio('.wi_fic_genre')
       .children()
-      .map((i, el) => loadedCheerio(el).text())
+      .map((i, el) => loadedCheerio(el).text().trim())
       .toArray()
       .join(',');
 
-    genres += loadedCheerio('.wi_fic_showtags_inner')
-      .children()
-      .map((i, el) => loadedCheerio(el).text())
-      .toArray()
-      .join(',');
+    genres +=
+      ',' +
+      loadedCheerio('.wi_fic_showtags_inner')
+        .children()
+        .map((i, el) => loadedCheerio(el).text().trim())
+        .toArray()
+        .join(',');
 
     novel.genres = genres;
 
-    loadedCheerio('span.morelink.list').html('');
     let summary = '';
+    loadedCheerio('span.morelink.list').html('');
     summary += loadedCheerio('.wi_fic_desc').eq(0).text().trim();
-    if (loadedCheerio('.wi_fic_desc .testhide').length > 0) {
-      summary += '\n\n';
-      const elements = loadedCheerio('.wi_fic_desc .testhide').find('p');
-      elements.each((i, p) => {
-        let htmlContent = loadedCheerio(p).html() || '';
-        htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
-        loadedCheerio(p).html(htmlContent);
+    const desc = loadedCheerio('.wi_fic_desc .testhide');
+    if (desc.length > 0) {
+      desc.find('p').each((i, p) => {
+        loadedCheerio(p).html('\n\n');
         summary += loadedCheerio(p).text().trim();
-        if (i < elements.length - 1) {
-          summary += '\n\n';
-        }
       });
+      summary += '\n\n' + desc.text().trim();
     }
     novel.summary = summary;
 
@@ -182,7 +179,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
         return dayJSDate.toISOString();
       }
-      return new Date(date).toISOString();
+      return null; // new Date(date).toISOString();
     };
 
     loadedCheerio('.toc_w').each((i, el) => {
