@@ -4,14 +4,14 @@ import { FilterTypes, Filters } from '@libs/filterInputs';
 import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import dayjs from 'dayjs';
-import { parse } from 'date-fns';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 class ScribbleHubPlugin implements Plugin.PluginBase {
   id = 'scribblehub';
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.6';
+  version = '1.2.7';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -149,6 +149,8 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
 
     const chapter: Plugin.ChapterItem[] = [];
 
+    dayjs.extend(customParseFormat);
+
     const parseISODate = (date: string) => {
       if (date.includes('ago')) {
         const dayJSDate = dayjs(new Date()); // today
@@ -158,22 +160,34 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
         if (!timeAgo) return null; // there is no number!
 
         if (date.includes('hours ago') || date.includes('hour ago')) {
-          dayJSDate.subtract(timeAgoInt, 'hours'); // go back N hours
+          return dayJSDate.subtract(timeAgoInt, 'hours').toISOString(); // go back N hours
         }
 
         if (date.includes('days ago') || date.includes('day ago')) {
-          dayJSDate.subtract(timeAgoInt, 'days'); // go back N days
+          return dayJSDate.subtract(timeAgoInt, 'days').toISOString(); // go back N days
         }
 
         if (date.includes('months ago') || date.includes('month ago')) {
-          dayJSDate.subtract(timeAgoInt, 'months'); // go back N months
+          return dayJSDate.subtract(timeAgoInt, 'months').toISOString(); // go back N months
         }
 
         return dayJSDate.toISOString();
       } else if (date.indexOf(' ') === 3) {
-        return parse(date, 'MMM dd, yyyy', new Date());
+        // Explicit parsing for "MMM dd, yyyy" (handles both single and double digits)
+        const parsedDate = dayjs(date, ['MMM D, YYYY', 'MMM DD, YYYY'], true); // Multiple formats for flexibility
+
+        if (!parsedDate.isValid()) {
+          console.error(`Invalid date format: ${date}`);
+        }
+
+        return parsedDate.toISOString();
       } else {
-        return dayjs(date).format('LL');
+        // Default ISO-like parsing fallback
+        const parsedDate = dayjs(date);
+        if (!parsedDate.isValid()) {
+          console.error(`Invalid date format: ${date}`);
+        }
+        return parsedDate.toISOString();
       }
     };
 
