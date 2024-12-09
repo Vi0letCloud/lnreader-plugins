@@ -7,7 +7,7 @@ import { defaultCover } from '@libs/defaultCover';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.13';
+  version = '1.2.14';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
