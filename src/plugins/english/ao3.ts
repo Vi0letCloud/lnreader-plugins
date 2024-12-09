@@ -140,7 +140,8 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
 
     elements.each((i, p) => {
       const htmlContent = loadedCheerio(p).html() || '';
-      loadedCheerio(p).html(htmlContent.replace(/<br\s*\/?>/g, '\n'));
+      const htmlModified = htmlContent.replace(/<br\s*\/?>/g, '\n');
+      loadedCheerio(p).html(htmlModified);
       summary += loadedCheerio(p).text().trim();
       if (i < elements.length - 1) {
         summary += '\n\n';
