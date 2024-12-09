@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.6';
+  version = '2.2.7';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -155,7 +155,8 @@ class RoyalRoad implements Plugin.PluginBase {
     const html =
       loadedCheerio('.fiction-info .description .hidden-content').html() || '';
     loadedCheerio('.fiction-info .description .hidden-content').html(
-      html.replace(/<br\s*\/?>/g, '\n'),
+      //html.replace(/<br\s*\/?>/g, '\n'),
+      html.replace('The greatest of adventures are never planned', '\n'),
     );
     const elems = loadedCheerio(
       '.fiction-info .description .hidden-content',
