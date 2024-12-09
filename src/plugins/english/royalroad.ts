@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.2';
+  version = '2.2.3';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -103,7 +103,7 @@ class RoyalRoad implements Plugin.PluginBase {
     const novel: Plugin.SourceNovel = {
       path: novelPath,
       name: loadedCheerio('.fic-title h1').text().trim(),
-      author: loadedCheerio('.fic-title h4 a').text().trim(),
+      author: loadedCheerio('.fic-title h4 a').eq(0).text().trim(),
       status: NovelStatus.Unknown,
       cover: loadedCheerio('.fic-header img.thumbnail').attr('src'),
       summary: '',
@@ -154,14 +154,14 @@ class RoyalRoad implements Plugin.PluginBase {
     let summary = '';
     const elements = loadedCheerio(
       '.fiction-info .description .hidden-content',
-    ).find('p');
-    elements.each((i, p) => {
-      let htmlContent = loadedCheerio(p).html() || '';
+    ).find('p, div');
+    elements.each((i, elem) => {
+      let htmlContent = loadedCheerio(elem).html() || '';
       htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
-      loadedCheerio(p).html(htmlContent);
-      summary += loadedCheerio(p).text().trim();
+      loadedCheerio(elem).html(htmlContent);
+      summary += loadedCheerio(elem).text().trim();
       if (i < elements.length - 1) {
-        summary += '\n\n';
+        summary += '\n' + elem.tagName === 'p' ? '\n' : '';
       }
     });
     novel.summary = summary.trim();
