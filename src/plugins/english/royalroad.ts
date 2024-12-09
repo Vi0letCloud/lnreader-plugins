@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.10';
+  version = '2.2.11';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -204,8 +204,10 @@ class RoyalRoad implements Plugin.PluginBase {
     const body = await result.text();
     const loadedCheerio = parseHTML(body);
 
-    const chapterName =
-      '<h3>' + loadedCheerio('h1.font-white').text().trim() + '</h3><br/>';
+    let chapterName = loadedCheerio('h1.font-white').text().trim();
+    if (chapterName.length > 0) {
+      chapterName = '<h3>' + chapterName + '</h3><br/>';
+    }
 
     const classNames: string[] = [];
     const classRegex = /\.([^{]+)\s*{/g;
