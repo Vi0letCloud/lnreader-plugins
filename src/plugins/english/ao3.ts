@@ -7,7 +7,7 @@ import { defaultCover } from '@libs/defaultCover';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.10';
+  version = '1.2.11';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -153,7 +153,9 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .join(',');
 
     let series = '';
-    const seriesElems = loadedCheerio('dd.series span.position');
+    const seriesElems = loadedCheerio('dd.series span.series').find(
+      'span.position',
+    );
     seriesElems.each((i, el) => {
       series += loadedCheerio(el).text().trim();
       if (i < elements.length - 1) {
@@ -177,7 +179,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
 
     novel.summary =
       (fandom.length > 0 ? `Fandom:\n${fandom.replace(',', '\n')}\n\n` : ``) +
-      (series.length > 0 ? `Series:\n${series.replace('', '')}\n\n` : ``) +
+      (series.length > 0 ? `Series:\n${series}\n\n` : ``) +
       (summary.length > 0 ? `Summary:\n${summary}` : ``);
 
     const chapterItems: Plugin.ChapterItem[] = [];
