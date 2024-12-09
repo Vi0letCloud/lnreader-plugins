@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.3';
+  version = '2.2.4';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -152,15 +152,18 @@ class RoyalRoad implements Plugin.PluginBase {
         .replace(/\n\s+/g, ',');
 
     let summary = '';
-    const elements = loadedCheerio(
+    loadedCheerio('.fiction-info .description .hidden-content')
+      .html()
+      ?.replace(/<br\s*\/?>/g, '\n');
+    const elems = loadedCheerio(
       '.fiction-info .description .hidden-content',
     ).find('p, div');
-    elements.each((i, elem) => {
-      let htmlContent = loadedCheerio(elem).html() || '';
-      htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
-      loadedCheerio(elem).html(htmlContent);
+    elems.each((i, elem) => {
+      // let htmlContent = loadedCheerio(elem).html() || '';
+      // htmlContent = htmlContent.replace(/<br\s*\/?>/g, '\n');
+      // loadedCheerio(elem).html(htmlContent);
       summary += loadedCheerio(elem).text().trim();
-      if (i < elements.length - 1) {
+      if (i < elems.length - 1) {
         summary += '\n' + elem.tagName === 'p' ? '\n' : '';
       }
     });
