@@ -7,7 +7,7 @@ import { defaultCover } from '@libs/defaultCover';
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
-  version = '1.2.9';
+  version = '1.2.10';
   icon = 'src/en/ao3/icon.png';
   site = 'https://archiveofourown.org/';
 
@@ -152,7 +152,14 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       .map(el => loadedCheerio(el).text().trim())
       .join(',');
 
-    const series = loadedCheerio('dd.series span.position').text().trim();
+    let series = '';
+    const seriesElems = loadedCheerio('dd.series span.position');
+    seriesElems.each((i, el) => {
+      series += loadedCheerio(el).text().trim();
+      if (i < elements.length - 1) {
+        series += '\n';
+      }
+    });
 
     const relation = Array.from(loadedCheerio('dd.relationship.tags li a.tag'))
       .map(el => loadedCheerio(el).text().trim())
@@ -169,8 +176,8 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       (tags.length > 0 ? `Additional Tags:,${tags}` : ``);
 
     novel.summary =
-      (fandom.length > 0 ? `Fandom:\n${fandom}\n\n` : ``) +
-      (series.length > 0 ? `Series:\n${series}\n\n` : ``) +
+      (fandom.length > 0 ? `Fandom:\n${fandom.replace(',', '\n')}\n\n` : ``) +
+      (series.length > 0 ? `Series:\n${series.replace('', '')}\n\n` : ``) +
       (summary.length > 0 ? `Summary:\n${summary}` : ``);
 
     const chapterItems: Plugin.ChapterItem[] = [];
