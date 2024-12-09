@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.9';
+  version = '2.2.10';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -164,7 +164,7 @@ class RoyalRoad implements Plugin.PluginBase {
     elems.each((i, elem) => {
       summary += loadedCheerio(elem).text().trim();
       if (i < elems.length - 1) {
-        summary += '\n' + (elem.tagName === 'p' ? '\n' : '');
+        summary += '\n\n';
       }
     });
     novel.summary = summary.trim();
