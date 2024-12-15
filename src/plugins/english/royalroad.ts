@@ -8,7 +8,7 @@ import { CheerioAPI, load as parseHTML } from 'cheerio';
 class RoyalRoad implements Plugin.PluginBase {
   id = 'royalroad';
   name = 'Royal Road';
-  version = '2.2.11';
+  version = '2.2.12';
   icon = 'src/en/royalroad/icon.png';
   site = 'https://www.royalroad.com/';
 
@@ -112,7 +112,7 @@ class RoyalRoad implements Plugin.PluginBase {
     };
 
     const status = loadedCheerio(
-      'div.fiction-info > div.portlet > .col-md-8 > .margin-bottom-10 > span.label',
+      '.fiction-info > .portlet > .col-md-8 > .margin-bottom-10 > .label',
     )
       .eq(1)
       .text()
