@@ -237,7 +237,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
         loadedCheerio(el)
           .find('.sp-body > :not(.spdiv)')
           .each((i, elem) => {
-            spoilerContent += loadedCheerio(elem).html();
+            spoilerContent += loadedCheerio(elem).toString();
           });
         loadedCheerio(el).html(spoilerContent);
       });
