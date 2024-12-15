@@ -10,7 +10,7 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
   name = 'Scribble Hub';
   icon = 'src/en/scribblehub/icon.png';
   site = 'https://www.scribblehub.com/';
-  version = '1.2.13';
+  version = '1.2.14';
 
   parseNovels(loadedCheerio: CheerioAPI) {
     const novels: Plugin.NovelItem[] = [];
@@ -233,8 +233,12 @@ class ScribbleHubPlugin implements Plugin.PluginBase {
     loadedCheerio('div.chp_raw')
       .find('.sp-wrap')
       .each((i, el) => {
-        const spoilerContent =
-          loadedCheerio(el).find('.sp-body > :not(.spdiv)').html() || '';
+        let spoilerContent = '';
+        loadedCheerio(el)
+          .find('.sp-body > :not(.spdiv)')
+          .each((i, elem) => {
+            spoilerContent += loadedCheerio(elem).html() || '';
+          });
         loadedCheerio(el).html(spoilerContent);
       });
 
